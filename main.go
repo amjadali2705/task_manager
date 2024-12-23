@@ -1,17 +1,17 @@
 package main
 
 import (
-	"task_manager/db"
+	"task_manager/config"
 	"task_manager/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	db.InitDB()
+	config.InitDB()
 	server := gin.Default()
 
-	server.POST("/signup", routes.Signup)
+	routes.RegisterRoutes(server)
 
 	server.Run(":8080")
 }

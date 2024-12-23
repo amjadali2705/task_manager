@@ -1,25 +1,79 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
-	"github.com/gin-gonic/gin"
 	"task_manager/models"
+	"task_manager/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Signup(c *gin.Context) {
+func signup(context *gin.Context) {
 	var user models.User
-	err := c.ShouldBindJSON(&user)
+
+	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "could not bind user data"})
+		fmt.Println(err)
+		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data"})
 		return
 	}
 
-	user.ID = 1
 	err = user.Save()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user"})
+		fmt.Println(err)
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
+	jwtToken, err := utils.GenerateJwtToken(user.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not generate the token"})
+		return
+	}
+
+	refreshToken, err := utils.GenerateRefreshToken(user.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not generate the token"})
+		return
+	}
+
+	err = user.SaveToken(jwtToken, refreshToken)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not save the token"})
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh": refreshToken, "jwt": jwtToken})
+}
+
+func getUsers(context *gin.Context) {
+	users, err := models.GetAllUsers()
+	if err != nil {
+		fmt.Println(err)
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch users"})
+		return
+	}
+
+	context.JSON(http.StatusOK, users)
+}
+
+func getLogins(context *gin.Context) {
+	logins, err := models.GetAllLOGIN()
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch users"})
+		return
+	}
+
+	context.JSON(http.StatusOK, logins)
+}
+
+func getTokens(context *gin.Context) {
+	tokens, err := models.GetAllToken()
+	if err != nil {
+		fmt.Println(err)
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch tokens"})
+		return
+	}
+	context.JSON(http.StatusOK, tokens)
 }
