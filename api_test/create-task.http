@@ -1,0 +1,9 @@
+POST http://localhost:8080/tasks
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzUxMjM3MjEsInVzZXJJZCI6MX0.nK-_VKZnn3LjtDKoYW7XLxDNMRrSS8O7J9defxAfGMY
+
+{
+  "title": "Test Task",
+  "description": "This is a test task",
+  "isCompleted": "false"
+}

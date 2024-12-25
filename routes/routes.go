@@ -1,6 +1,10 @@
 package routes
 
-import "github.com/gin-gonic/gin"
+import (
+	"task_manager/middlewares"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(server *gin.Engine) {
 	server.POST("/signup", signup)
@@ -9,4 +13,9 @@ func RegisterRoutes(server *gin.Engine) {
 	server.GET("/users", getUsers)
 	// server.GET("/logins", getLogins)
 	// server.GET("/tokens", getTokens)
+
+	authenticated := server.Group("/")
+	authenticated.Use(middlewares.Authenticate)
+	authenticated.POST("/tasks", createTask)
 }
+

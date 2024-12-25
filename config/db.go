@@ -62,4 +62,19 @@ func createTables() {
 	if err != nil {
 		panic("Could not create token table")
 	}
+
+	createTaskTable := ` CREATE TABLE IF NOT EXISTS tasks(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		description TEXT NOT NULL,
+		isCompleted VARCHAR(5) NOT NULL,
+		user_id INTEGER,
+		FOREIGN KEY (user_id) REFERENCES users(u_id)
+	) `
+
+	_, err = DB.Exec(createTaskTable)
+	if err != nil {
+		panic("Could not create tasks table")
+	}
+
 }
