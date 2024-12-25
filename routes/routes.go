@@ -12,7 +12,7 @@ func RegisterRoutes(server *gin.Engine) {
 
 	
 	server.GET("/tasks", getTasks)
-
+	server.GET("/tasks/:id", getTask)
 	server.GET("/users", getUsers)
 	// server.GET("/logins", getLogins)
 	// server.GET("/tokens", getTokens)

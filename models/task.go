@@ -49,3 +49,17 @@ func GetAllTasks() ([]Task, error) {
 	return tasks, nil
 }
 
+func GetTaskById(id int64) (*Task, error) {
+	query := `SELECT * FROM tasks WHERE id = ?`
+	row := config.DB.QueryRow(query, id)
+
+	var task Task
+
+	err := row.Scan(&task.ID, &task.Title, &task.Description, &task.IsCompleted, &task.UserID)
+	if err != nil {	
+		return nil, err
+	}
+
+	return &task, nil
+}
+
