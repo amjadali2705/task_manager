@@ -26,9 +26,15 @@ func signup(context *gin.Context) {
 		return
 	}
 
+	err = utils.ValidateDetails(user.Name, user.Email, user.Mobile_No, user.Gender, user.Password)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true})
+		return
+	}
+
 	jwtToken, err := utils.GenerateJwtToken(uid)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not generate the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
 		return
 	}
 
@@ -40,7 +46,7 @@ func signup(context *gin.Context) {
 
 	err = user.SaveToken(jwtToken, refreshToken)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not save the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
 		return
 	}
 
