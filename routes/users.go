@@ -50,7 +50,7 @@ func signup(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh": refreshToken, "jwt": jwtToken, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "access_token": jwtToken, "error": false})
 }
 
 func getUsers(context *gin.Context) {
@@ -83,3 +83,34 @@ func getUsers(context *gin.Context) {
 // 	}
 // 	context.JSON(http.StatusOK, tokens)
 // }
+
+func login(context *gin.Context) {
+	var login models.Login
+
+	err := context.ShouldBindJSON(&login)
+	if err != nil {
+		fmt.Println(err)
+		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data", "error": true})
+		return
+	}
+
+	err = login.ValidateCredentials()
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "could not authenticate user", "error": true})
+		return
+	}
+
+	jwtToken, err := utils.GenerateJwtToken(login.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
+		return
+	}
+
+	refreshToken, err := utils.GenerateRefreshToken(login.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "login successfully", "refresh_token": refreshToken, "access_token": jwtToken, "error": false})
+}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"task_manager/config"
 	"task_manager/utils"
 	"time"
@@ -29,9 +30,9 @@ type UserResponse struct {
 
 type Login struct {
 	ID       int64
-	Email    string `binding:"required"`
-	Password string `binding:"required"`
-	User_id  int64  `binding:"required"`
+	Email    string `binding:"required" json:"username"`
+	Password string `binding:"required" json:"password"`
+	// User_id  int64  `binding:"required"`
 }
 
 type Token struct {
@@ -172,3 +173,22 @@ func (u User) SaveToken(jwt_token string, refresh_token string) error {
 // 	return tokens, nil
 // }
 
+func (u *Login) ValidateCredentials() error {
+	query := "SELECT id, password FROM login WHERE email = ?"
+
+	row := config.DB.QueryRow(query, u.Email)
+
+	var retrievedpassword string
+	err := row.Scan(&u.ID, &retrievedpassword)
+	if err != nil {
+		return errors.New("invalid credentials")
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedpassword)
+
+	if !passwordIsValid {
+		return errors.New("invalid credentials")
+	}
+
+	return nil
+}
