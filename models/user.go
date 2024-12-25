@@ -42,42 +42,45 @@ type Token struct {
 	Timestamp time.Time `binding:"required"`
 }
 
-func (u User) Save() error {
-	query := "INSERT INTO users(name,mobile_no, gender, email) VALUES (?,?,?,?)"
+func (u User) Save() (int64, error) {
+	query := "INSERT INTO users(name, mobile_no, gender, email) VALUES (?,?,?,?)"
 
 	stmt, err := config.DB.Prepare(query)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer stmt.Close()
 
 	result, err := stmt.Exec(u.Name, u.Mobile_No, u.Gender, u.Email)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	userId, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
 	u.ID = userId
 
-	loginQuery := "INSERT INTO login (email, password,user_id) VALUES(?,?,?)"
+	loginQuery := "INSERT INTO login (email, password, user_id) VALUES(?,?,?)"
 
 	loginstmt, err := config.DB.Prepare(loginQuery)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer loginstmt.Close()
 
 	hashedpassword, err := utils.HashPassword(u.Password)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	_, err = loginstmt.Exec(u.Email, hashedpassword, u.ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return err
+	return u.ID, err
 }
 
 func GetAllUsers() ([]UserResponse, error) {
@@ -104,29 +107,29 @@ func GetAllUsers() ([]UserResponse, error) {
 	return usersR, nil
 }
 
-func GetAllLOGIN() ([]Login, error) {
-	query := "SELECT * FROM login"
+// func GetAllLOGIN() ([]Login, error) {
+// 	query := "SELECT * FROM login"
 
-	rows, err := config.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// 	rows, err := config.DB.Query(query)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	var logins []Login
-	for rows.Next() {
-		var login Login
+// 	var logins []Login
+// 	for rows.Next() {
+// 		var login Login
 
-		err := rows.Scan(&login.ID, &login.Email, &login.Password, &login.User_id)
-		if err != nil {
-			return nil, err
-		}
+// 		err := rows.Scan(&login.ID, &login.Email, &login.Password, &login.User_id)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		logins = append(logins, login)
-	}
+// 		logins = append(logins, login)
+// 	}
 
-	return logins, nil
-}
+// 	return logins, nil
+// }
 
 func (u User) SaveToken(jwt_token string, refresh_token string) error {
 	query := "INSERT INTO token (refresh_token, jwt_token, timestamp) VALUES (?,?,?)"
@@ -145,26 +148,27 @@ func (u User) SaveToken(jwt_token string, refresh_token string) error {
 	return err
 }
 
-func GetAllToken() ([]Token, error) {
-	query := "SELECT * FROM token"
+// func GetAllToken() ([]Token, error) {
+// 	query := "SELECT * FROM token"
 
-	rows, err := config.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+// 	rows, err := config.DB.Query(query)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
 
-	var tokens []Token
-	for rows.Next() {
-		var token Token
+// 	var tokens []Token
+// 	for rows.Next() {
+// 		var token Token
 
-		err := rows.Scan(&token.ID, &token.Refresh_Token, &token.JWT_Token, &token.Timestamp)
-		if err != nil {
-			return nil, err
-		}
+// 		err := rows.Scan(&token.ID, &token.Refresh_Token, &token.JWT_Token, &token.Timestamp)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tokens = append(tokens, token)
-	}
+// 		tokens = append(tokens, token)
+// 	}
 
-	return tokens, nil
-}
+// 	return tokens, nil
+// }
+
