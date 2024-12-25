@@ -63,3 +63,16 @@ func GetTaskById(id int64) (*Task, error) {
 	return &task, nil
 }
 
+func (t *Task) Update() error {
+	query := `UPDATE tasks SET title = ?, description = ?, isCompleted = ? WHERE id = ?`
+
+	stmt, err := config.DB.Prepare(query)
+	if err != nil {
+		return err
+	}		
+	defer stmt.Close()
+
+	_, err = stmt.Exec(t.Title, t.Description, t.IsCompleted, t.ID)
+	return err
+}
+
