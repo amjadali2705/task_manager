@@ -26,3 +26,13 @@ func createTask(context *gin.Context) {
 
 	context.JSON(http.StatusCreated, gin.H{"message": "task created", "tasks": task, "error": false})
 }
+
+func getTasks(context *gin.Context) {
+	tasks, err := models.GetAllTasks()
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"tasks": tasks, "error": false})
+}

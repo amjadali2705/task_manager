@@ -28,3 +28,24 @@ func (t *Task) Save() error {
 	t.ID = id
 	return err
 }
+
+func GetAllTasks() ([]Task, error) {
+	query := `SELECT * FROM tasks`
+	rows, err := config.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []Task
+	for rows.Next() {
+		var task Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.IsCompleted, &task.UserID)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, nil
+}
+
