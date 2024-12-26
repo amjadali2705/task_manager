@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"net/http"
 	"task_manager/utils"
 	"time"
 
@@ -20,14 +21,14 @@ func decodeToken(token string) (int64, int64, error) {
 func RefreshTokenMiddleware(context *gin.Context) {
 	token := context.GetHeader("Authorization")
 	if token == "" {
-		context.JSON(401, gin.H{"error": "Authorization token is required"})
+		context.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
 		context.Abort()
 		return
 	}
 
 	userId, expiration, err := decodeToken(token)
 	if err != nil {
-		context.JSON(401, gin.H{"error": "Invalid token"})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token", "error": true})
 		context.Abort()
 		return
 	}
@@ -36,14 +37,14 @@ func RefreshTokenMiddleware(context *gin.Context) {
 	if expiration < now {
 		refreshToken := context.GetHeader("Refresh-Token")
 		if refreshToken == "" {
-			context.JSON(401, gin.H{"error": "Refresh token is required"})
+			context.JSON(401, gin.H{"message": "Refresh token is required", "error": true})
 			context.Abort()
 			return
 		}
 
 		newAccessToken, err := utils.GenerateJwtToken(userId)
 		if err != nil {
-			context.JSON(500, gin.H{"error": "Internal server error"})
+			context.JSON(http.StatusUnauthorized, gin.H{"message": "Failed to generate new user token", "error": true})
 			context.Abort()
 			return
 		}
