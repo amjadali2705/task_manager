@@ -36,5 +36,5 @@ func RefreshTokenhandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed successfully", "error": false, "newAccessToken": newAccessToken, "newRefreshToken": newRefreshToken})
+	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed successfully", "error": false, "user_token": newAccessToken, "refresh_token": newRefreshToken})
 }

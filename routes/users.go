@@ -50,7 +50,7 @@ func signup(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "access_token": jwtToken, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "user_token": jwtToken, "error": false})
 }
 
 func getUsers(context *gin.Context) {
@@ -112,5 +112,5 @@ func login(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "login successfully", "refresh_token": refreshToken, "access_token": jwtToken, "error": false})
+	context.JSON(http.StatusOK, gin.H{"message": "login successfully", "refresh_token": refreshToken, "user_token": jwtToken, "error": false})
 }

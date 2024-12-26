@@ -1,9 +1,0 @@
-PUT http://localhost:8080/tasks/1
-Content-Type: application/json
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzUxMzg3ODYsInVzZXJJZCI6Mn0.vuExiUoOusAsccM4oXnOaCp_MM5ioGaKuGpp0eezuuo
-
-{
-  "title": "Test Updated Task ",
-  "description": "This is a updated test task",
-  "isCompleted": "true"
-}
