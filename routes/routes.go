@@ -10,7 +10,6 @@ func RegisterRoutes(server *gin.Engine) {
 	server.POST("/signup", signup)
 	server.POST("/login", login)
 
-	
 	server.GET("/tasks", getTasks)
 	server.GET("/tasks/:id", getTask)
 	server.GET("/users", getUsers)
@@ -22,5 +21,6 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/tasks", createTask)
 	authenticated.PUT("/tasks/:id", updateTask)
 	authenticated.DELETE("/tasks/:id", deleteTask)
-}
 
+	server.POST("/refresh-token", RefreshTokenhandler)
+}

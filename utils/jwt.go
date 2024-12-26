@@ -13,7 +13,7 @@ const secretKey2 = "supertopsecret"
 func GenerateJwtToken(userId int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userId": userId,
-		"exp":    time.Now().Add(time.Hour * 1).Unix(),
+		"exp":    time.Now().Add(time.Minute * 1).Unix(),
 	})
 
 	return token.SignedString([]byte(secretKey))
@@ -84,4 +84,23 @@ func VerifyRefreshToken(token string) (int64, error) {
 	// email := claims["email"].(string)
 	userId := int64(claims["userId"].(float64))
 	return userId, nil
+}
+
+func DecodeJwtToken(token string) (map[string]interface{}, error) {
+	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, jwt.MapClaims{})
+	if err != nil {
+		return nil, errors.New("could not decode the token")
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+
+	claimsMap := make(map[string]interface{})
+	for key, value := range claims {
+		claimsMap[key] = value
+	}
+
+	return claimsMap, nil
 }

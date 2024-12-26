@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"strings"
 	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,9 @@ func Authenticate(context *gin.Context) {
 		context.Abort()
 		return
 	}
+
+	token = strings.TrimPrefix(token, "Bearer ")
+
 	userId, err := utils.VerifyJwtToken(token)
 	if err != nil {
 		println(err)
