@@ -26,7 +26,7 @@ func signup(context *gin.Context) {
 		return
 	}
 
-	err = utils.ValidateDetails(user.Name, user.Email, user.Mobile_No, user.Gender, user.Password)
+	err = utils.ValidateDetails(user.Name, user.Email, user.Mobile_No, user.Gender, user.Password, user.Confirm_Password)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true})
 		return

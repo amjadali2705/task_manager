@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-func ValidateDetails(name, email string, mobile int64, gender, password string) error {
+func ValidateDetails(name, email string, mobile int64, gender, password, confirmPassword string) error {
 
 	//validate name
 	if len(name) < 3 {
@@ -55,6 +55,11 @@ func ValidateDetails(name, email string, mobile int64, gender, password string) 
 
 	if !hasUpper || !hasLower || !hasDigit || !hasSpecial {
 		return errors.New("password should contain atleast one uppercase, one lowercase, one digit, and one special character")
+	}
+
+	//validate confirm password
+	if password != confirmPassword {
+		return errors.New("password and confirm password do not match")
 	}
 
 	return nil

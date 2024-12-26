@@ -14,7 +14,8 @@ type User struct {
 	Gender    string `binding:"required" json:"gender"`
 	Email     string `binding:"required" json:"email"`
 	//Image []byte `binding:"required"`
-	Password string `binding:"required" json:"password"`
+	Password         string `binding:"required" json:"password"`
+	Confirm_Password string `binding:"required" json:"confirm_password"`
 	//Timestamp time.Time `binding:"required"`
 }
 
