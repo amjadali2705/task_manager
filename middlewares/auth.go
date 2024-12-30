@@ -20,11 +20,13 @@ func Authenticate(context *gin.Context) {
 
 	userId, err := utils.VerifyJwtToken(token)
 	if err != nil {
-		println(err)
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
 		context.Abort()
 		return
 	}
+
+	context.Set("token", token)
 	context.Set("userId", userId)
+	
 	context.Next()
 }

@@ -28,15 +28,15 @@ func createTask(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "task created", "tasks": task, "error": false})
 }
 
-func getTasks(context *gin.Context) {
-	tasks, err := models.GetAllTasks()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
-		return
-	}
+// func getTasks(context *gin.Context) {
+// 	tasks, err := models.GetAllTasks()
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
+// 		return
+// 	}
 
-	context.JSON(http.StatusOK, gin.H{"tasks": tasks, "error": false})
-}
+// 	context.JSON(http.StatusOK, gin.H{"tasks": tasks, "error": false})
+// }
 
 func getTask(context *gin.Context) {
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
@@ -45,7 +45,7 @@ func getTask(context *gin.Context) {
 		return
 	}
 
-	task, err := models.GetTaskById(taskId)
+	task, err := models.GetTaskByID(taskId)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
@@ -63,7 +63,7 @@ func updateTask(context *gin.Context) {
 
 	userID := context.GetInt64("userId")
 
-	task, err := models.GetTaskById(taskId)
+	task, err := models.GetTaskByID(taskId)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
@@ -102,9 +102,8 @@ func deleteTask(context *gin.Context) {
 
 	userID := context.GetInt64("userId")
 
-	task, err := models.GetTaskById(taskId)
-	if
-		err != nil {
+	task, err := models.GetTaskByID(taskId)
+	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
 	}
@@ -121,4 +120,46 @@ func deleteTask(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "task deleted successfully", "error": false})
+}
+
+func getTasksByQuery(context *gin.Context) {
+
+	userId, exists := context.Get("userId")
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
+		return
+	}
+
+	// Retrieve query parameters
+	sortOrder := context.DefaultQuery("sort", "asc") // Default sort order: ascending
+	isCompleted := context.Query("isCompleted")      // Optional filter
+
+	// Pagination parameters
+	page, err := strconv.Atoi(context.DefaultQuery("page", "1")) // Default page: 1
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(context.DefaultQuery("limit", "10")) // Default limit: 10
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// Fetch tasks with filters, sorting, and pagination
+	tasks, totalTasks, err := models.GetTasksWithFilters(userId.(int64), sortOrder, isCompleted, limit, offset)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (totalTasks + int64(limit) - 1) / int64(limit)
+
+	// Respond with tasks and pagination metadata
+	context.JSON(http.StatusOK, gin.H{
+		"tasks":       tasks,
+		"totalPages":  totalPages,
+		"currentPage": page,
+		"error":       false,
+	})
 }
