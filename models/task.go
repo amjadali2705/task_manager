@@ -117,9 +117,9 @@ func GetAllTasks() ([]Task, error) {
 	return tasks, result.Error
 }
 
-func GetTaskByID(id int64) (*Task, error) {
+func GetTaskByID(id, userId int64) (*Task, error) {
 	var task Task
-	result := config.DB.First(&task, id)
+	result := config.DB.Where("id = ? AND user_id = ?", id, userId).First(&task)
 	if result.Error != nil {
 		return nil, result.Error
 	}

@@ -52,13 +52,19 @@ func getTask(context *gin.Context) {
 		return
 	}
 
+	userId, exists := context.Get("userId")
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
+		return
+	}
+
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
 		return
 	}
 
-	task, err := models.GetTaskByID(taskId)
+	task, err := models.GetTaskByID(taskId, userId.(int64))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
@@ -81,7 +87,7 @@ func updateTask(context *gin.Context) {
 
 	userID := context.GetInt64("userId")
 
-	task, err := models.GetTaskByID(taskId)
+	task, err := models.GetTaskByID(taskId, userID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
@@ -125,7 +131,7 @@ func deleteTask(context *gin.Context) {
 
 	userID := context.GetInt64("userId")
 
-	task, err := models.GetTaskByID(taskId)
+	task, err := models.GetTaskByID(taskId, userID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
