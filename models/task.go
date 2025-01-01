@@ -97,17 +97,17 @@ import (
 )
 
 type Task struct {
-	ID          int64  `gorm:"primaryKey;autoIncrement" json:"id"`
-	Title       string `gorm:"not null" json:"title" binding:"required"`
-	Description string `gorm:"not null" json:"description" binding:"required"`
-	IsCompleted string `gorm:"not null" json:"isCompleted" binding:"required"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description" binding:"required"`
+	IsCompleted string `json:"isCompleted" binding:"required"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	UserID      int64 `gorm:"not null" json:"userId"`
+	UserID      int64 `json:"userId"`
 }
 
 func (t *Task) Save() error {
-	result := config.DB.Create(t)
+	result := config.DB.Create(&t)
 	return result.Error
 }
 
@@ -141,7 +141,7 @@ func GetTasksWithFilters(userId int64, sortOrder, isCompleted string, limit, off
 	var totalTasks int64
 
 	// Start building the query
-	query := config.DB.Order("created_at " + sortOrder).Where("user_id = ?", userId)
+	query := config.DB.Order("created_at "+sortOrder).Where("user_id = ?", userId)
 
 	// Apply the isCompleted filter if provided
 	if isCompleted != "" {
@@ -158,4 +158,3 @@ func GetTasksWithFilters(userId int64, sortOrder, isCompleted string, limit, off
 	result := query.Find(&tasks)
 	return tasks, totalTasks, result.Error
 }
-

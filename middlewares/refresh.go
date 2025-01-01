@@ -49,7 +49,7 @@ func RefreshTokenMiddleware(context *gin.Context) {
 			return
 		}
 
-		context.Header("New-Access-Token", newAccessToken)
+		context.Header("New-User-Token", newAccessToken)
 	}
 
 	context.Next()

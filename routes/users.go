@@ -3,6 +3,7 @@ package routes
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"task_manager/config"
 	"task_manager/models"
 	"task_manager/utils"
@@ -33,7 +34,7 @@ func signUp(context *gin.Context) {
 		return
 	}
 
-	jwtToken, err := utils.GenerateJwtToken(uid)
+	userToken, err := utils.GenerateJwtToken(uid)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
 		return
@@ -45,13 +46,13 @@ func signUp(context *gin.Context) {
 		return
 	}
 
-	err = user.SaveToken(jwtToken, refreshToken)
+	err = user.SaveToken(userToken, refreshToken)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "user_token": jwtToken, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "user_token": userToken, "error": false})
 }
 
 // func getUsers(context *gin.Context) {
@@ -87,6 +88,7 @@ func signUp(context *gin.Context) {
 
 func signIn(context *gin.Context) {
 	var login models.Login
+	var user models.User
 
 	err := context.ShouldBindJSON(&login)
 	if err != nil {
@@ -101,7 +103,7 @@ func signIn(context *gin.Context) {
 		return
 	}
 
-	jwtToken, err := utils.GenerateJwtToken(login.ID)
+	userToken, err := utils.GenerateJwtToken(login.ID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
 		return
@@ -113,7 +115,13 @@ func signIn(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "signIn successfully", "refresh_token": refreshToken, "user_token": jwtToken, "error": false})
+	err = user.SaveToken(userToken, refreshToken)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
+		return
+	}
+
+	context.JSON(http.StatusCreated, gin.H{"message": "signIn successfully", "refresh_token": refreshToken, "user_token": userToken, "error": false})
 }
 
 func updateUser(c *gin.Context) {
@@ -160,16 +168,37 @@ func updateUser(c *gin.Context) {
 			return
 		}
 
-		if err := config.DB.Model(models.Login{}).Where("user_id = ?", user.ID).Update("password", hashedPassword).Error; err != nil {
+		if err := config.DB.Model(&config.Login{}).Where("user_id = ?", user.ID).Update("password", hashedPassword).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update user", "error": true})
 			return
 		}
 	}
 
-	if err := config.DB.Save(&user).Error; err != nil {
+	err = updateRequest.UpdateUserTable()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "error": false})
+}
+
+// signOut function
+func signOut(c *gin.Context) {
+	tokenString := strings.TrimSpace(c.GetHeader("Authorization"))
+
+	if tokenString == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "token not found", "error": true})
+		return
+	}
+
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+	err := models.DeleteToken(tokenString)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to sign out", "error": true})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user sign out successfully", "error": false})
 }

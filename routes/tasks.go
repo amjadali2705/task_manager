@@ -3,14 +3,21 @@ package routes
 import (
 	"net/http"
 	"strconv"
+	"task_manager/middlewares"
 	"task_manager/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func createTask(context *gin.Context) {
+
+	err := middlewares.CheckTokenPresent(context)
+	if err != nil {
+		return
+	}
+
 	var task models.Task
-	err := context.ShouldBindJSON(&task)
+	err = context.ShouldBindJSON(&task)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse request", "error": true})
 		return
@@ -39,6 +46,12 @@ func createTask(context *gin.Context) {
 // }
 
 func getTask(context *gin.Context) {
+
+	err := middlewares.CheckTokenPresent(context)
+	if err != nil {
+		return
+	}
+
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
@@ -55,6 +68,11 @@ func getTask(context *gin.Context) {
 }
 
 func updateTask(context *gin.Context) {
+	err := middlewares.CheckTokenPresent(context)
+	if err != nil {
+		return
+	}
+
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
@@ -94,6 +112,11 @@ func updateTask(context *gin.Context) {
 }
 
 func deleteTask(context *gin.Context) {
+	err := middlewares.CheckTokenPresent(context)
+	if err != nil {
+		return
+	}
+
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
@@ -123,6 +146,11 @@ func deleteTask(context *gin.Context) {
 }
 
 func getTasksByQuery(context *gin.Context) {
+
+	err := middlewares.CheckTokenPresent(context)
+	if err != nil {
+		return
+	}
 
 	userId, exists := context.Get("userId")
 	if !exists {

@@ -93,7 +93,7 @@ var DB *gorm.DB
 
 func InitDB() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open("task.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Could not connect to database: %v", err)
 	}
@@ -110,15 +110,15 @@ func createTables() {
 }
 
 type User struct {
-	ID               int64   `gorm:"primaryKey;autoIncrement"`
-	Name             string `gorm:"not null"`
-	MobileNo         int64    `gorm:"not null"`
-	Gender           string `gorm:"not null"`
-	Email            string `gorm:"not null;unique"`
+	ID       int64  `gorm:"primaryKey;autoIncrement"`
+	Name     string `gorm:"not null"`
+	MobileNo int64  `gorm:"not null"`
+	Gender   string `gorm:"not null"`
+	Email    string `gorm:"not null;unique"`
 }
 
 type Login struct {
-	ID       int64   `gorm:"primaryKey;autoIncrement"`
+	ID       int64  `gorm:"primaryKey;autoIncrement"`
 	Email    string `gorm:"not null;unique"`
 	Password string `gorm:"not null"`
 	UserID   int64
@@ -126,14 +126,14 @@ type Login struct {
 }
 
 type Token struct {
-	ID           int64   `gorm:"primaryKey;autoIncrement"`
-	RefreshToken string `gorm:"not null;unique"`
-	JwtToken     string `gorm:"not null;unique"`
-	Timestamp    int64  `gorm:"not null"`
+	ID           int64     `gorm:"primaryKey;autoIncrement"`
+	RefreshToken string    `gorm:"not null;unique"`
+	UserToken    string    `gorm:"not null;unique"`
+	Timestamp    time.Time `gorm:"not null"`
 }
 
 type Task struct {
-	ID          int64   `gorm:"primaryKey;autoIncrement"`
+	ID          int64  `gorm:"primaryKey;autoIncrement"`
 	Title       string `gorm:"not null"`
 	Description string `gorm:"not null"`
 	IsCompleted string `gorm:"not null"`

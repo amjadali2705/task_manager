@@ -222,18 +222,18 @@ type UserResponse struct {
 }
 
 type Login struct {
-	ID       int64  `gorm:"primaryKey"`
-	Email    string `gorm:"not null;unique" json:"username"`
-	Password string `gorm:"not null" json:"password"`
-	UserID   int64  `gorm:"not null" json:"userId"`
+	ID       int64
+	Email    string `json:"username"`
+	Password string `json:"password"`
+	UserID   int64
 }
 
-type Token struct {
-	ID            int64     `gorm:"primaryKey"`
-	Refresh_Token string    `gorm:"not null"`
-	JWT_Token     string    `gorm:"not null"`
-	Timestamp     time.Time `gorm:"not null"`
-}
+// type Token struct {
+// 	ID            int64     `gorm:"primaryKey"`
+// 	Refresh_Token string    `gorm:"not null"`
+// 	JWT_Token     string    `gorm:"not null"`
+// 	Timestamp     time.Time `gorm:"not null"`
+// }
 
 func (u *User) Save() (int64, error) {
 	user := config.User{Name: u.Name, MobileNo: u.Mobile_No, Gender: u.Gender, Email: u.Email}
@@ -267,8 +267,8 @@ func (u *User) Save() (int64, error) {
 // 	return usersR, nil
 // }
 
-func (u *User) SaveToken(jwt_token, refresh_token string) error {
-	token := Token{Refresh_Token: refresh_token, JWT_Token: jwt_token, Timestamp: time.Now()}
+func (u *User) SaveToken(user_token, refresh_token string) error {
+	token := config.Token{UserToken: user_token, RefreshToken: refresh_token, Timestamp: time.Now()}
 	if err := config.DB.Create(&token).Error; err != nil {
 		return err
 	}
@@ -298,3 +298,31 @@ func GetUserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
+func DeleteToken(tokenString string) error {
+	var token config.Token
+	if err := config.DB.Where("user_token = ?", tokenString).First(&token).Error; err != nil {
+		return err
+	}
+	if err := config.DB.Delete(&token).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteRefreshToken(tokenString string) error {
+	var token config.Token
+	if err := config.DB.Where("refresh_token = ?", tokenString).First(&token).Error; err != nil {
+		return err
+	}
+	if err := config.DB.Delete(&token).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) UpdateUserTable() error {
+	if err := config.DB.Model(&config.User{}).Where("email = ?", u.Email).Updates(map[string]interface{}{"name": u.Name, "mobile_no": u.Mobile_No, "gender": u.Gender}).Error; err != nil {
+		return err
+	}
+	return nil
+}

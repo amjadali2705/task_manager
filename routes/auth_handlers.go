@@ -2,12 +2,15 @@ package routes
 
 import (
 	"net/http"
+	"task_manager/models"
 	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RefreshTokenhandler(c *gin.Context) {
+	var user models.User
+
 	refreshToken := c.GetHeader("Refresh-Token")
 	if refreshToken == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Refresh token is required", "error": true})
@@ -22,9 +25,9 @@ func RefreshTokenhandler(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, err := utils.GenerateJwtToken(userId)
+	newUserToken, err := utils.GenerateJwtToken(userId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new access token", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new user token", "error": true})
 		c.Abort()
 		return
 	}
@@ -36,5 +39,19 @@ func RefreshTokenhandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed successfully", "error": false, "user_token": newAccessToken, "refresh_token": newRefreshToken})
+	err = user.SaveToken(newUserToken, newRefreshToken) 
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error saving new tokens", "error": true})
+		c.Abort()
+		return
+	}
+
+	err = models.DeleteRefreshToken(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error deleting old refresh token", "error": true})
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed successfully", "error": false, "user_token": newUserToken, "refresh_token": newRefreshToken})
 }
