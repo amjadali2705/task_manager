@@ -82,9 +82,10 @@
 package config
 
 import (
-	"log"
+	"task_manager/utils"
 	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -95,7 +96,7 @@ func InitDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("task.db"), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Could not connect to database: %v", err)
+		utils.Logger.Fatal("Could not connect to database", zap.Error(err))
 	}
 
 	createTables()
@@ -104,9 +105,10 @@ func InitDB() {
 func createTables() {
 	err := DB.AutoMigrate(&User{}, &Login{}, &Token{}, &Task{})
 	if err != nil {
-		log.Fatalf("could not migrate tables: %v", err)
+		utils.Logger.Fatal("Could not migrate tables", zap.Error(err))
 	}
 
+	utils.Logger.Info("Database tables migrated successfully")
 }
 
 type User struct {

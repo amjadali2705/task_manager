@@ -201,6 +201,8 @@ import (
 	"task_manager/config"
 	"task_manager/utils"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type User struct {
@@ -237,6 +239,7 @@ type Login struct {
 
 func (u *User) Save() (int64, error) {
 	user := config.User{Name: u.Name, MobileNo: u.Mobile_No, Gender: u.Gender, Email: u.Email}
+
 	if err := config.DB.Create(&user).Error; err != nil {
 		return 0, err
 	}
@@ -269,23 +272,30 @@ func (u *User) Save() (int64, error) {
 
 func (u *User) SaveToken(user_token, refresh_token string) error {
 	token := config.Token{UserToken: user_token, RefreshToken: refresh_token, Timestamp: time.Now()}
+
 	if err := config.DB.Create(&token).Error; err != nil {
+		utils.Logger.Error("Failed to save token", zap.Error(err))
 		return err
 	}
+
+	utils.Logger.Info("Token saved successfully")
 	return nil
 }
 
 func (u *Login) ValidateCredentials() error {
 	var login Login
 	if err := config.DB.Where("email = ?", u.Email).First(&login).Error; err != nil {
+		utils.Logger.Warn("Invalid credentials provided")
 		return errors.New("invalid credentials")
 	}
 
 	passwordIsValid := utils.CheckPasswordHash(u.Password, login.Password)
 	if !passwordIsValid {
+		utils.Logger.Warn("Password mismatch")
 		return errors.New("invalid credentials")
 	}
 
+	utils.Logger.Info("User credentials validated successfully")
 	u.ID = login.ID
 	return nil
 }
@@ -293,36 +303,52 @@ func (u *Login) ValidateCredentials() error {
 func GetUserByEmail(email string) (*User, error) {
 	var user User
 	if err := config.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		utils.Logger.Error("Failed to fetch user by email", zap.Error(err))
 		return nil, err
 	}
+
+	utils.Logger.Info("User fetched by email successfully")
 	return &user, nil
 }
 
 func DeleteToken(tokenString string) error {
 	var token config.Token
 	if err := config.DB.Where("user_token = ?", tokenString).First(&token).Error; err != nil {
+		utils.Logger.Error("Token not found for deletion", zap.Error(err))
 		return err
 	}
+
 	if err := config.DB.Delete(&token).Error; err != nil {
+		utils.Logger.Error("Failed to delete token", zap.Error(err))
 		return err
 	}
+
+	utils.Logger.Info("Token deleted successfully")
 	return nil
 }
 
 func DeleteRefreshToken(tokenString string) error {
 	var token config.Token
 	if err := config.DB.Where("refresh_token = ?", tokenString).First(&token).Error; err != nil {
+		utils.Logger.Error("Refresh Token not found for deletion", zap.Error(err))
 		return err
 	}
+
 	if err := config.DB.Delete(&token).Error; err != nil {
+		utils.Logger.Error("Failed to delete refresh token", zap.Error(err))
 		return err
 	}
+
+	utils.Logger.Info("Refresh Token deleted successfully")
 	return nil
 }
 
 func (u *User) UpdateUserTable() error {
 	if err := config.DB.Model(&config.User{}).Where("email = ?", u.Email).Updates(map[string]interface{}{"name": u.Name, "mobile_no": u.Mobile_No, "gender": u.Gender}).Error; err != nil {
+		utils.Logger.Error("Failed to update user table", zap.Error(err))
 		return err
 	}
+
+	utils.Logger.Info("User table updated successfully")
 	return nil
 }

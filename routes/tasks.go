@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"task_manager/middlewares"
 	"task_manager/models"
+	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func createTask(context *gin.Context) {
@@ -19,19 +21,23 @@ func createTask(context *gin.Context) {
 	var task models.Task
 	err = context.ShouldBindJSON(&task)
 	if err != nil {
+		utils.Logger.Error("Failed to parse request", zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse request", "error": true})
 		return
 	}
 
 	userId := context.GetInt64("userId")
 	task.UserID = userId
+	utils.Logger.Info("Recieved task creation request", zap.Int64("userId", userId))
 
 	err = task.Save()
 	if err != nil {
+		utils.Logger.Error("Failed to save task", zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not create task", "error": true})
 		return
 	}
 
+	utils.Logger.Info("Task created successfully", zap.Int64("taskId", task.ID), zap.Int64("userId", userId))
 	context.JSON(http.StatusCreated, gin.H{"message": "task created", "tasks": task, "error": false})
 }
 
@@ -54,22 +60,28 @@ func getTask(context *gin.Context) {
 
 	userId, exists := context.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
 		return
 	}
 
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
+		utils.Logger.Error("Failed to parse task ID", zap.String("param", context.Param("id")), zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
 		return
 	}
 
+	utils.Logger.Info("Fetching task", zap.Int64("taskId", taskId), zap.Int64("userId", userId.(int64)))
+
 	task, err := models.GetTaskByID(taskId, userId.(int64))
 	if err != nil {
+		utils.Logger.Error("Failed to get task or access denied", zap.Int64("taskId", taskId), zap.Int64("userId", userId.(int64)))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
 	}
 
+	utils.Logger.Info("Task fetched successfully", zap.Int64("taskId", taskId), zap.Int64("userId", userId.(int64)))
 	context.JSON(http.StatusOK, gin.H{"task": task, "error": false})
 }
 
@@ -81,6 +93,7 @@ func updateTask(context *gin.Context) {
 
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
+		utils.Logger.Error("Failed to parse task ID", zap.String("param", context.Param("id")), zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
 		return
 	}
@@ -89,11 +102,13 @@ func updateTask(context *gin.Context) {
 
 	task, err := models.GetTaskByID(taskId, userID)
 	if err != nil {
+		utils.Logger.Error("Failed to fetch task", zap.Int64("taskId", taskId), zap.Int64("userId", userID), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
 	}
 
 	if task.UserID != userID {
+		utils.Logger.Warn("User not authorized to update task", zap.Int64("taskId", taskId), zap.Int64("userId", userID))
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized to update", "error": true})
 		return
 	}
@@ -102,6 +117,7 @@ func updateTask(context *gin.Context) {
 
 	err = context.ShouldBindJSON(&updatedTask)
 	if err != nil {
+		utils.Logger.Error("Failed to bind json", zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse request", "error": true})
 		return
 	}
@@ -110,10 +126,12 @@ func updateTask(context *gin.Context) {
 
 	err = updatedTask.Update()
 	if err != nil {
+		utils.Logger.Error("Failed to update task", zap.Int64("taskId", taskId), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not update task", "error": true})
 		return
 	}
 
+	utils.Logger.Info("Task updated successfully", zap.Int64("taskId", taskId), zap.Int64("userId", userID))
 	context.JSON(http.StatusOK, gin.H{"message": "task updated successfully", "error": false})
 }
 
@@ -125,6 +143,7 @@ func deleteTask(context *gin.Context) {
 
 	taskId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
+		utils.Logger.Error("Failed to parse task ID", zap.String("param", context.Param("id")), zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse to int", "error": true})
 		return
 	}
@@ -133,21 +152,25 @@ func deleteTask(context *gin.Context) {
 
 	task, err := models.GetTaskByID(taskId, userID)
 	if err != nil {
+		utils.Logger.Error("Failed to fetch task for deletion", zap.Int64("taskId", taskId), zap.Int64("userId", userID), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get task", "error": true})
 		return
 	}
 
 	if task.UserID != userID {
+		utils.Logger.Warn("User not authorized to delete task", zap.Int64("taskId", taskId), zap.Int64("userId", userID))
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized to delete", "error": true})
 		return
 	}
 
 	err = task.Delete()
 	if err != nil {
+		utils.Logger.Error("Failed to delete task", zap.Int64("taskId", taskId), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not delete task", "error": true})
 		return
 	}
 
+	utils.Logger.Info("Task deleted successfully", zap.Int64("taskId", taskId), zap.Int64("userId", userID))
 	context.JSON(http.StatusOK, gin.H{"message": "task deleted successfully", "error": false})
 }
 
@@ -160,6 +183,7 @@ func getTasksByQuery(context *gin.Context) {
 
 	userId, exists := context.Get("userId")
 	if !exists {
+		utils.Logger.Warn("Unauthorized access attempt in getTasksByQuery")
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
 		return
 	}
@@ -171,17 +195,22 @@ func getTasksByQuery(context *gin.Context) {
 	// Pagination parameters
 	page, err := strconv.Atoi(context.DefaultQuery("page", "1")) // Default page: 1
 	if err != nil || page < 1 {
+		utils.Logger.Warn("Invalid page parameter", zap.String("page", context.DefaultQuery("page", "1")), zap.Error(err))
 		page = 1
 	}
+
 	limit, err := strconv.Atoi(context.DefaultQuery("limit", "10")) // Default limit: 10
 	if err != nil || limit < 1 {
-		limit = 10
+		utils.Logger.Warn("Invalid limit parameter", zap.String("limit", context.DefaultQuery("limit", "5")), zap.Error(err))
+		limit = 5
 	}
+
 	offset := (page - 1) * limit
 
 	// Fetch tasks with filters, sorting, and pagination
 	tasks, totalTasks, err := models.GetTasksWithFilters(userId.(int64), sortOrder, isCompleted, limit, offset)
 	if err != nil {
+		utils.Logger.Error("Failed to get tasks", zap.Int64("userId", userId.(int64)), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
 		return
 	}
@@ -190,6 +219,7 @@ func getTasksByQuery(context *gin.Context) {
 	totalPages := (totalTasks + int64(limit) - 1) / int64(limit)
 
 	// Respond with tasks and pagination metadata
+	utils.Logger.Info("Tasks fetched successfully", zap.Int64("userId", userId.(int64)), zap.String("sortOrder", sortOrder), zap.String("isCompleted", isCompleted), zap.Int("page", page), zap.Int("limit", limit), zap.Int("totalPages", int(totalPages)))
 	context.JSON(http.StatusOK, gin.H{
 		"tasks":       tasks,
 		"totalPages":  totalPages,

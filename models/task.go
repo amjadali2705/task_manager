@@ -93,7 +93,10 @@ package models
 
 import (
 	"task_manager/config"
+	"task_manager/utils"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Task struct {
@@ -108,32 +111,53 @@ type Task struct {
 
 func (t *Task) Save() error {
 	result := config.DB.Create(&t)
-	return result.Error
+	if result.Error != nil {
+		utils.Logger.Error("Failed to save task", zap.Error(result.Error), zap.Int64("userId", t.ID))
+		return result.Error
+	}
+
+	utils.Logger.Info("Task saved successfully", zap.Int64("taskId", t.ID))
+	return nil
 }
 
-func GetAllTasks() ([]Task, error) {
-	var tasks []Task
-	result := config.DB.Find(&tasks)
-	return tasks, result.Error
-}
+// func GetAllTasks() ([]Task, error) {
+// 	var tasks []Task
+// 	result := config.DB.Find(&tasks)
+// 	return tasks, result.Error
+// }
 
 func GetTaskByID(id, userId int64) (*Task, error) {
 	var task Task
 	result := config.DB.Where("id = ? AND user_id = ?", id, userId).First(&task)
 	if result.Error != nil {
-		return nil, result.Error
+		utils.Logger.Error("Failed to fetch task by id", zap.Error(result.Error), zap.Int64("taskId", id))
+		return &Task{}, result.Error
 	}
+
+	utils.Logger.Info("Task fetched by id successfully", zap.Int64("taskId", id), zap.Int64("userId", userId))
 	return &task, nil
 }
 
 func (t *Task) Update() error {
 	result := config.DB.Model(&Task{}).Where("id = ?", t.ID).Updates(Task{Title: t.Title, Description: t.Description, IsCompleted: t.IsCompleted, UpdatedAt: time.Now()})
+	if result.Error != nil {
+		utils.Logger.Error("Failed to update task", zap.Error(result.Error), zap.Int64("taskId", t.ID))
+		return result.Error
+	}
+
+	utils.Logger.Info("Task updated successfully", zap.Int64("taskId", t.ID))
 	return result.Error
 }
 
 func (t *Task) Delete() error {
 	result := config.DB.Delete(t)
-	return result.Error
+	if result.Error != nil {
+		utils.Logger.Error("Failed to delete task", zap.Error(result.Error), zap.Int64("taskId", t.ID))
+		return result.Error
+	}
+
+	utils.Logger.Info("Task deleted successfully", zap.Int64("taskId", t.ID))
+	return nil
 }
 
 func GetTasksWithFilters(userId int64, sortOrder, isCompleted string, limit, offset int) ([]Task, int64, error) {
@@ -156,5 +180,11 @@ func GetTasksWithFilters(userId int64, sortOrder, isCompleted string, limit, off
 
 	// Execute the query
 	result := query.Find(&tasks)
-	return tasks, totalTasks, result.Error
+	if result.Error != nil {
+		utils.Logger.Error("Failed to fetch tasks", zap.Error(result.Error), zap.Int64("userId", userId), zap.String("sortOrder", sortOrder), zap.String("isCompleted", isCompleted), zap.Int("limit", limit), zap.Int("offset", offset))
+		return nil, 0, result.Error
+	}
+
+	utils.Logger.Info("Tasks fetched successfully", zap.Int64("userId", userId), zap.String("sortOrder", sortOrder), zap.String("isCompleted", isCompleted), zap.Int("tasksCount", len(tasks)), zap.Int("totalTasks", int(totalTasks)))
+	return tasks, totalTasks, nil
 }
