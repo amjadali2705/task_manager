@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"task_manager/config"
+	"task_manager/middlewares"
 	"task_manager/models"
 	"task_manager/utils"
 
@@ -137,6 +138,18 @@ func signIn(context *gin.Context) {
 func updateUser(c *gin.Context) {
 	var updateRequest models.User
 
+	err := middlewares.CheckTokenPresent(c)
+	if err != nil {
+		return
+	}
+
+	userIdFromToken, exists := c.Get("userId")
+	if !exists {
+		utils.Logger.Error("User ID not found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access", "error": true})
+		return
+	}
+
 	if err := c.ShouldBindJSON(&updateRequest); err != nil {
 		utils.Logger.Warn("Invalid request body", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true})
@@ -150,9 +163,9 @@ func updateUser(c *gin.Context) {
 	}
 
 	user, err := models.GetUserByEmail(updateRequest.Email)
-	if err != nil {
-		utils.Logger.Warn("User not found", zap.Error(err))
-		c.JSON(http.StatusNotFound, gin.H{"message": "could not get user", "error": true})
+	if err != nil || user.ID != userIdFromToken.(int64) {
+		utils.Logger.Warn("User not found or unauthorized", zap.Error(err))
+		c.JSON(http.StatusForbidden, gin.H{"message": "Not authorized to update this", "error": true})
 		return
 	}
 
