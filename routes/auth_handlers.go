@@ -2,14 +2,16 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 	"task_manager/models"
 	"task_manager/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-func RefreshTokenhandler(c *gin.Context) {
+func refreshTokenhandler(c *gin.Context) {
 	var user models.User
 
 	refreshToken := c.GetHeader("Refresh-Token")
@@ -28,6 +30,42 @@ func RefreshTokenhandler(c *gin.Context) {
 		return
 	}
 
+	userToken := c.GetHeader("Authorization")
+	if userToken == "" {
+		utils.Logger.Warn("Missing User Token in request header", zap.String("url", c.Request.URL.String()))
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "User token is required", "error": true})
+		c.Abort()
+		return
+	}
+
+	userToken = strings.TrimPrefix(userToken, "Bearer ")
+
+	// Decode the user token to check its expiration
+	claims, err := utils.DecodeJwtToken(userToken)
+	if err != nil {
+		utils.Logger.Warn("Invalid User Token", zap.Error(err))
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid user token", "error": true})
+		c.Abort()
+		return
+	}
+
+	// Check if the token has expired
+	exp, ok := claims["exp"].(float64) // `exp` is usually a Unix timestamp
+	if !ok {
+		utils.Logger.Error("User token does not contain a valid expiration claim")
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token claims", "error": true})
+		c.Abort()
+		return
+	}
+
+	if int64(exp) > time.Now().Unix() {
+		// Token is still valid, no need to generate new tokens
+		utils.Logger.Info("User token is still valid", zap.Int64("userId", userId))
+		c.JSON(http.StatusOK, gin.H{"message": "User token is still valid", "error": false})
+		return
+	}
+
+	// Generate new tokens only if the user token has expired
 	newUserToken, err := utils.GenerateJwtToken(userId)
 	if err != nil {
 		utils.Logger.Error("Error generating new user token", zap.Error(err), zap.Int64("userId", userId))
@@ -61,5 +99,10 @@ func RefreshTokenhandler(c *gin.Context) {
 	}
 
 	utils.Logger.Info("Tokens refreshed successfully", zap.Int64("userId", userId))
-	c.JSON(http.StatusOK, gin.H{"message": "Tokens refreshed successfully", "error": false, "user_token": newUserToken, "refresh_token": newRefreshToken})
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Tokens refreshed successfully",
+		"error":         false,
+		"user_token":    newUserToken,
+		"refresh_token": newRefreshToken,
+	})
 }
