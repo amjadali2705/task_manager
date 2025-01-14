@@ -130,42 +130,42 @@ func refreshTokenHandler(c *gin.Context) {
 
 	refreshToken := c.GetHeader("Refresh-Token")
 	if refreshToken == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Refresh token required", "error": true})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Refresh token required", "error": true, "data": nil})
 		return
 	}
 
 	// Verify the refresh token
 	userId, err := utils.VerifyRefreshToken(refreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid refresh token", "error": true})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid refresh token", "error": true, "data": nil})
 		return
 	}
 
 	// Generate a new access token
 	newUserToken, err := utils.GenerateJwtToken(userId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new access token", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new access token", "error": true, "data": nil})
 		return
 	}
 
 	newRefreshToken, err := utils.GenerateRefreshToken(userId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new refresh token", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating new refresh token", "error": true, "data": nil})
 		return
 	}
 
 	err = user.SaveToken(newUserToken, newRefreshToken)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true, "data": nil})
 		return
 	}
 
 	err = models.DeleteRefreshToken(refreshToken)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Failed to signout", "error": true})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Failed to signout", "error": true, "data": nil})
 		return
 	}
 
 	// Return the new access token to the client
-	c.JSON(http.StatusOK, gin.H{"message": "Token refreshed successfully", "user_token": newUserToken, "refresh_token": newRefreshToken, "error": false})
+	c.JSON(http.StatusOK, gin.H{"message": "Token refreshed successfully", "data": gin.H{"user_token": newUserToken, "refresh_token": newRefreshToken}, "error": false})
 }

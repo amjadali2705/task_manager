@@ -18,47 +18,47 @@ func signUp(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		utils.Logger.Error("Failed to parse request", zap.Error(err))
-		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data", "error": true})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data", "error": true, "data": nil})
 		return
 	}
 
 	uid, err := user.Save()
 	if err != nil {
 		utils.Logger.Error("Failed to save user", zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user", "error": true, "data": nil})
 		return
 	}
 
 	err = utils.ValidateDetails(user.Name, user.Email, user.Mobile_No, user.Gender, user.Password, user.Confirm_Password)
 	if err != nil {
 		utils.Logger.Warn("Failed to validate user details", zap.Error(err))
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true})
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true, "data": nil})
 		return
 	}
 
 	userToken, err := utils.GenerateJwtToken(uid)
 	if err != nil {
 		utils.Logger.Error("Failed to generate user token", zap.Int64("userId", uid), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true, "data": nil})
 		return
 	}
 
 	refreshToken, err := utils.GenerateRefreshToken(uid)
 	if err != nil {
 		utils.Logger.Error("Failed to generate refresh token", zap.Int64("userId", uid), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not generate the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "culd not generate the token", "error": true, "data": nil})
 		return
 	}
 
 	err = user.SaveToken(userToken, refreshToken)
 	if err != nil {
 		utils.Logger.Error("Failed to save token", zap.Int64("userId", uid), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true, "data": nil})
 		return
 	}
 
 	utils.Logger.Info("User signed up successfully", zap.Int64("userId", uid))
-	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "refresh_token": refreshToken, "user_token": userToken, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "data": gin.H{"refresh_token": refreshToken, "user_token": userToken}, "error": false})
 }
 
 // func getUsers(context *gin.Context) {
@@ -99,40 +99,40 @@ func signIn(context *gin.Context) {
 	err := context.ShouldBindJSON(&login)
 	if err != nil {
 		utils.Logger.Warn("Failed to parse login request", zap.Error(err))
-		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data", "error": true})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "cannot parsed the requested data", "error": true, "data": nil})
 		return
 	}
 
 	err = login.ValidateCredentials()
 	if err != nil {
 		utils.Logger.Warn("Authentication failed", zap.Error(err))
-		context.JSON(http.StatusBadRequest, gin.H{"message": "could not authenticate user", "error": true})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "could not authenticate user", "error": true, "data": nil})
 		return
 	}
 
 	userToken, err := utils.GenerateJwtToken(login.ID)
 	if err != nil {
 		utils.Logger.Error("Failed to generate user token", zap.Int64("userId", login.ID), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true, "data": nil})
 		return
 	}
 
 	refreshToken, err := utils.GenerateRefreshToken(login.ID)
 	if err != nil {
 		utils.Logger.Error("Failed to generate refresh token", zap.Int64("userId", login.ID), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not generate the token", "error": true, "data": nil})
 		return
 	}
 
 	err = user.SaveToken(userToken, refreshToken)
 	if err != nil {
 		utils.Logger.Error("Failed to save token", zap.Int64("userId", login.ID), zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save the token", "error": true, "data": nil})
 		return
 	}
 
 	utils.Logger.Info("User signed in successfully", zap.Int64("userId", login.ID))
-	context.JSON(http.StatusCreated, gin.H{"message": "signIn successfully", "refresh_token": refreshToken, "user_token": userToken, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "signIn successfully", "data": gin.H{"refresh_token": refreshToken, "user_token": userToken}, "error": false})
 }
 
 func updateUser(c *gin.Context) {
@@ -146,26 +146,26 @@ func updateUser(c *gin.Context) {
 	userIdFromToken, exists := c.Get("userId")
 	if !exists {
 		utils.Logger.Error("User ID not found in context")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access", "error": true})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access", "error": true, "data": nil})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&updateRequest); err != nil {
 		utils.Logger.Warn("Invalid request body", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true, "data": nil})
 		return
 	}
 
 	if updateRequest.Email == "" {
 		utils.Logger.Warn("Email is required")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "email is required", "error": true})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "email is required", "error": true, "data": nil})
 		return
 	}
 
 	user, err := models.GetUserByEmail(updateRequest.Email)
 	if err != nil || user.ID != userIdFromToken.(int64) {
 		utils.Logger.Warn("User not found or unauthorized", zap.Error(err))
-		c.JSON(http.StatusForbidden, gin.H{"message": "Not authorized to update this", "error": true})
+		c.JSON(http.StatusForbidden, gin.H{"message": "Not authorized to update this", "error": true, "data": nil})
 		return
 	}
 
@@ -188,20 +188,20 @@ func updateUser(c *gin.Context) {
 
 		if updateRequest.Password != updateRequest.Confirm_Password {
 			utils.Logger.Warn("Passwords do not match")
-			c.JSON(http.StatusBadRequest, gin.H{"message": "passwords do not match", "error": true})
+			c.JSON(http.StatusBadRequest, gin.H{"message": "passwords do not match", "error": true, "data": nil})
 			return
 		}
 
 		hashedPassword, err := utils.HashPassword(updateRequest.Password)
 		if err != nil {
 			utils.Logger.Error("Failed to hash password", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true, "data": nil})
 			return
 		}
 
 		if err := config.DB.Model(&config.Login{}).Where("user_id = ?", user.ID).Update("password", hashedPassword).Error; err != nil {
 			utils.Logger.Error("Failed to update password", zap.Int64("user_id", user.ID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update password", "error": true})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update password", "error": true, "data": nil})
 			return
 		}
 
@@ -211,12 +211,12 @@ func updateUser(c *gin.Context) {
 	err = updateRequest.UpdateUserTable()
 	if err != nil {
 		utils.Logger.Error("Failed to update user", zap.Int64("user_id", user.ID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true, "data": nil})
 		return
 	}
 
 	utils.Logger.Info("User updated successfully", zap.Int64("user_id", user.ID))
-	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "error": false})
+	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "error": false, "data": nil})
 }
 
 // signOut function
@@ -225,7 +225,7 @@ func signOut(c *gin.Context) {
 	tokenString := strings.TrimSpace(c.GetHeader("Authorization"))
 	if tokenString == "" {
 		utils.Logger.Warn("Token not provided for sign out")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "token not found", "error": true})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "token not found", "error": true, "data": nil})
 		return
 	}
 
@@ -236,10 +236,10 @@ func signOut(c *gin.Context) {
 	err := models.DeleteToken(tokenString)
 	if err != nil {
 		utils.Logger.Error("Failed to sign out", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to sign out", "error": true})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to sign out", "error": true, "data": nil})
 		return
 	}
 
 	utils.Logger.Info("User signed out successfully")
-	c.JSON(http.StatusOK, gin.H{"message": "user sign out successfully", "error": false})
+	c.JSON(http.StatusOK, gin.H{"message": "user sign out successfully", "error": false, "data": nil})
 }

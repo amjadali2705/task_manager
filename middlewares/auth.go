@@ -16,7 +16,7 @@ func Authenticate(context *gin.Context) {
 
 	if token == "" {
 		utils.Logger.Warn("Authorization token is missing", zap.String("method", context.Request.Method), zap.String("url", context.Request.URL.String()))
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "token not found", "error": true})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "token not found", "error": true, "data": nil})
 		context.Abort()
 		return
 	}
@@ -26,7 +26,7 @@ func Authenticate(context *gin.Context) {
 	userId, err := utils.VerifyJwtToken(token)
 	if err != nil {
 		utils.Logger.Error("Failed to verify user token", zap.Error(err))
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized", "error": true, "data": nil})
 		context.Abort()
 		return
 	}
@@ -46,7 +46,7 @@ func CheckTokenPresent(context *gin.Context) error {
 	err := config.DB.Where("user_token = ?", token).First(&dbToken).Error
 	if err != nil {
 		utils.Logger.Error("Session expired or token not found", zap.Error(err))
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Session Expired: User has to log in", "error": true})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Session Expired: User has to log in", "error": true, "data": nil})
 	}
 
 	utils.Logger.Info("Token found in the database", zap.String("tokenId", fmt.Sprintf("%d", dbToken.ID)))
