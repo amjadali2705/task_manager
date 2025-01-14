@@ -38,7 +38,7 @@ func createTask(context *gin.Context) {
 	}
 
 	utils.Logger.Info("Task created successfully", zap.Int64("taskId", task.ID), zap.Int64("userId", userId))
-	context.JSON(http.StatusCreated, gin.H{"message": "task created", "tasks": task, "error": false})
+	context.JSON(http.StatusCreated, gin.H{"message": "task created", "taskId": task.ID, "error": false})
 }
 
 // func getTasks(context *gin.Context) {
