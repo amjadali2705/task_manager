@@ -138,7 +138,7 @@ type Task struct {
 	ID          int64  `gorm:"primaryKey;autoIncrement"`
 	Title       string `gorm:"not null"`
 	Description string `gorm:"not null"`
-	IsCompleted string `gorm:"not null"`
+	Completed   string `gorm:"not null"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	UserID      int64
