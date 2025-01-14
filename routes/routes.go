@@ -28,5 +28,5 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.DELETE("/tasks/:id", deleteTask)
 	authenticated.DELETE("signOut", signOut)
 
-	server.POST("/refresh-token", refreshTokenhandler)
+	server.POST("/refresh-token", refreshTokenHandler)
 }

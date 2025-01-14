@@ -52,3 +52,24 @@ func CheckTokenPresent(context *gin.Context) error {
 	utils.Logger.Info("Token found in the database", zap.String("tokenId", fmt.Sprintf("%d", dbToken.ID)))
 	return err
 }
+
+
+func CheckRefreshToken(context *gin.Context) error {
+	refreshToken := context.Request.Header.Get("Refresh-Token")
+	if refreshToken == "" {
+		utils.Logger.Error("Refresh token is missing in requesh header")
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Refresh token required", "error": true, "data": nil})
+	}
+
+	var dbToken config.Token
+
+	err := config.DB.Where("refresh_token = ?", refreshToken).First(&dbToken).Error
+	if err != nil {
+		utils.Logger.Error("Session expired or refresh token not found", zap.Error(err))
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Session Expired: User has to log in", "error": true, "data": nil})
+		return err
+	}
+
+	utils.Logger.Info("Token found in the database", zap.String("tokenId", fmt.Sprintf("%d", dbToken.ID)))
+	return err
+}
