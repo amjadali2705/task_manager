@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -30,7 +31,8 @@ func ValidateDetails(name, email string, mobile int64, gender, password, confirm
 	}
 
 	//validate gender
-	if (gender != "male" && gender != "Male") && (gender != "female" && gender != "Female") && (gender != "other" && gender != "Other") {
+	gender = strings.ToLower(gender)
+	if gender != "male" && gender != "female" && gender != "other" {
 		return errors.New("gender must be 'male', 'female', or 'other'")
 	}
 
