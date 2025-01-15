@@ -2,14 +2,12 @@ package utils
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
-
-const secretKey = "supersecret"
-const secretKey2 = "supertopsecret"
 
 func GenerateJwtToken(userId int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -18,7 +16,7 @@ func GenerateJwtToken(userId int64) (string, error) {
 	})
 
 	Logger.Info("User Token generated successfully")
-	return token.SignedString([]byte(secretKey))
+	return token.SignedString([]byte(os.Getenv("JWT_SEC")))
 }
 
 func GenerateRefreshToken(userId int64) (string, error) {
@@ -28,7 +26,7 @@ func GenerateRefreshToken(userId int64) (string, error) {
 	})
 
 	Logger.Info("Refresh Token generated successfully")
-	return token.SignedString([]byte(secretKey2))
+	return token.SignedString([]byte(os.Getenv("JWT_REF_SEC")))
 }
 
 func VerifyJwtToken(token string) (int64, error) {
@@ -40,7 +38,7 @@ func VerifyJwtToken(token string) (int64, error) {
 			return nil, errors.New("unexpected signing method")
 		}
 
-		return []byte(secretKey), nil
+		return []byte(os.Getenv("JWT_SEC")), nil
 	})
 
 	if err != nil {
@@ -79,7 +77,7 @@ func VerifyRefreshToken(token string) (int64, error) {
 			return nil, errors.New("unexpected signing method")
 		}
 
-		return []byte(secretKey2), nil
+		return []byte(os.Getenv("JWT_REF_SEC")), nil
 	})
 
 	if err != nil {
