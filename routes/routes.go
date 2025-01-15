@@ -15,6 +15,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.PUT("/users", updateUser)
 	authenticated.GET("/tasks", getTasksByQuery)
 	authenticated.GET("/tasks/:id", getTask)
+	authenticated.GET("/users", getUser)
 	authenticated.PUT("/updatePass", updatePassword)
 	authenticated.POST("/tasks", createTask)
 	authenticated.PUT("/tasks/:id", updateTask)

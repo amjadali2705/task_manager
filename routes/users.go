@@ -199,6 +199,27 @@ func updatePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password Updated Successfully.Please login in again.", "error": false, "data": nil})
 }
 
+func getUser(c *gin.Context) {
+	err := middlewares.CheckTokenPresent(c)
+	if err != nil {
+		return
+	}
+
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
+		return
+	}
+
+	user, err := models.GetUserById(userId.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch user", "error": true, "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": user, "message": "user data fetched successfully", "error": false})
+}
+
 // signOut function
 func signOut(c *gin.Context) {
 

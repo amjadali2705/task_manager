@@ -20,11 +20,10 @@ type User struct {
 }
 
 type UserResponse struct {
-	Name      string `json:"name"`
-	Mobile_No int64  `json:"mob_no"`
-	Gender    string `json:"gender"`
-	Email     string `json:"email"`
-	User_id   int64  `json:"user_id"`
+	Name      string
+	Mobile_No int64
+	Gender    string
+	Email     string
 }
 
 type Login struct {
@@ -186,4 +185,17 @@ func DeleteTokenById(uid int64, tokenString string) error {
 		return result.Error
 	}
 	return nil
+}
+
+func GetUserById(uid int64) (*UserResponse, error) {
+	var user UserResponse
+
+	result := config.DB.Model(&config.User{}).Select("name, mobile_no, gender, email ").Where("id =?", uid).First(&user)
+	if result.Error != nil {
+		utils.Logger.Error("Failed to fetch user by id", zap.Error(result.Error), zap.Int64("userId", uid))
+		return nil, result.Error
+	}
+
+	utils.Logger.Info("Fetched user by id successfully", zap.Int64("userId", uid))
+	return &user, nil
 }
