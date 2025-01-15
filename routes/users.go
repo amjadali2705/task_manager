@@ -21,17 +21,19 @@ func signUp(context *gin.Context) {
 		return
 	}
 
-	uid, err := user.Save()
-	if err != nil {
-		utils.Logger.Error("Failed to save user", zap.Error(err))
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user", "error": true, "data": nil})
-		return
-	}
-
 	err = utils.ValidateDetails(user.Name, user.Email, user.Mobile_No, user.Gender, user.Password, user.Confirm_Password)
 	if err != nil {
 		utils.Logger.Warn("Failed to validate user details", zap.Error(err))
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true, "data": nil})
+		return
+	}
+
+	user.Gender = strings.ToLower(user.Gender)
+
+	uid, err := user.Save()
+	if err != nil {
+		utils.Logger.Error("Failed to save user", zap.Error(err))
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not save user", "error": true, "data": nil})
 		return
 	}
 
@@ -245,22 +247,22 @@ func signOut(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "user sign out successfully", "error": false, "data": nil})
 }
 
-func signOutAll(c *gin.Context) { 
-	err := middlewares.CheckTokenPresent(c) 
-	if err != nil { 
-		return 
-	} 
-	
-	userId, exists := c.Get("userId") 
-	if !exists { 
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil}) 
-		return 
-	} 
-	
-	err = models.DeleteAllUsers(userId.(int64)) 
-	if err != nil { 
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to signout from all devices", "error": true, "data": nil}) 
-	} 
-	
-	c.JSON(http.StatusOK, gin.H{"message": "Signout from all devices is successfully", "data": nil, "error": false}) 
+func signOutAll(c *gin.Context) {
+	err := middlewares.CheckTokenPresent(c)
+	if err != nil {
+		return
+	}
+
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
+		return
+	}
+
+	err = models.DeleteAllUsers(userId.(int64))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to signout from all devices", "error": true, "data": nil})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Signout from all devices is successfully", "data": nil, "error": false})
 }
