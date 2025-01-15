@@ -137,6 +137,68 @@ func updateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User details updated successfully", "error": false, "data": nil})
 }
 
+func updatePassword(c *gin.Context) {
+	var req models.UpdatePasswordRequest
+
+	err := middlewares.CheckTokenPresent(c)
+	if err != nil {
+		return
+	}
+
+	token := c.Request.Header.Get("Authorization")
+	token = strings.TrimPrefix(token, "Bearer ")
+
+	// Bind JSON request to struct
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true, "data": nil})
+		return
+	}
+
+	userIdFromToken, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
+		return
+	}
+
+	err = utils.ValidatePassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Unable to validate password", "error": true, "data": nil})
+		return
+	}
+
+	user, err := models.GetUserByIdPassChng(userIdFromToken.(int64))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "User not found", "error": true, "data": nil})
+		return
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(req.OldPassword, user.Password)
+	if !passwordIsValid {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Incorrect old password", "error": true, "data": nil})
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to hashed password", "error": true, "data": nil})
+		return
+	}
+
+	err = models.UpdatePassById(userIdFromToken.(int64), hashedPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update password", "error": true, "data": nil})
+		return
+	}
+
+	err = models.DeleteTokenById(userIdFromToken.(int64), token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete tokens", "error": true, "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password Updated Successfully.Please login in again.", "error": false, "data": nil})
+}
+
 // signOut function
 func signOut(c *gin.Context) {
 

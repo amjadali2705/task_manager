@@ -39,6 +39,11 @@ type UpdateUserRequest struct {
 	Mobile_No int64  `json:"mobile_no" binding:"required"`
 }
 
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
 func (u *User) Save() (int64, error) {
 	user := config.User{Name: u.Name, MobileNo: u.Mobile_No, Gender: u.Gender, Email: u.Email}
 
@@ -149,5 +154,36 @@ func UpdateUserDetails(uid int64, req UpdateUserRequest) error {
 		return result.Error
 	}
 
+	return nil
+}
+
+func GetUserByIdPassChng(uid int64) (*config.Login, error) {
+	var login config.Login
+
+	if err := config.DB.Where("id = ?", uid).First(&login).Error; err != nil {
+		return nil, err
+	}
+	return &login, nil
+}
+
+func UpdatePassById(uid int64, password string) error {
+	if err := config.DB.Model(&config.Login{}).Where("user_id = ?", uid).Update("password", password).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteTokenById(uid int64, tokenString string) error {
+	var token config.Token
+
+	result := config.DB.Where("user_id = ? AND user_token != ?", uid, tokenString).Delete(&token)
+	if result.RowsAffected == 0 {
+		return nil
+	}
+
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
