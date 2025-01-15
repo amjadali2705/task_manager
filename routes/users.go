@@ -3,7 +3,6 @@ package routes
 import (
 	"net/http"
 	"strings"
-	"task_manager/config"
 	"task_manager/middlewares"
 	"task_manager/models"
 	"task_manager/utils"
@@ -61,37 +60,6 @@ func signUp(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "User save successfully", "data": gin.H{"refresh_token": refreshToken, "user_token": userToken}, "error": false})
 }
 
-// func getUsers(context *gin.Context) {
-// 	users, err := models.GetAllUsers()
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch users", "error": true})
-// 		return
-// 	}
-
-// 	context.JSON(http.StatusOK, users)
-// }
-
-// func getLogins(context *gin.Context) {
-// 	logins, err := models.GetAllLOGIN()
-// 	if err != nil {
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch users"})
-// 		return
-// 	}
-
-// 	context.JSON(http.StatusOK, logins)
-// }
-
-// func getTokens(context *gin.Context) {
-// 	tokens, err := models.GetAllToken()
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch tokens"})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, tokens)
-// }
-
 func signIn(context *gin.Context) {
 	var login models.Login
 	var user models.User
@@ -136,87 +104,37 @@ func signIn(context *gin.Context) {
 }
 
 func updateUser(c *gin.Context) {
-	var updateRequest models.User
+	var req models.UpdateUserRequest
 
 	err := middlewares.CheckTokenPresent(c)
 	if err != nil {
 		return
 	}
 
-	userIdFromToken, exists := c.Get("userId")
+	userId, exists := c.Get("userId")
 	if !exists {
-		utils.Logger.Error("User ID not found in context")
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access", "error": true, "data": nil})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&updateRequest); err != nil {
-		utils.Logger.Warn("Invalid request body", zap.Error(err))
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true, "data": nil})
 		return
 	}
 
-	if updateRequest.Email == "" {
-		utils.Logger.Warn("Email is required")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "email is required", "error": true, "data": nil})
-		return
-	}
-
-	user, err := models.GetUserByEmail(updateRequest.Email)
-	if err != nil || user.ID != userIdFromToken.(int64) {
-		utils.Logger.Warn("User not found or unauthorized", zap.Error(err))
-		c.JSON(http.StatusForbidden, gin.H{"message": "Not authorized to update this", "error": true, "data": nil})
-		return
-	}
-
-	if updateRequest.Name != "" {
-		user.Name = updateRequest.Name
-		utils.Logger.Info("User name updated successfully")
-	}
-
-	if updateRequest.Mobile_No != 0 {
-		user.Mobile_No = updateRequest.Mobile_No
-		utils.Logger.Info("User mobile number updated successfully")
-	}
-
-	if updateRequest.Gender != "" {
-		user.Gender = updateRequest.Gender
-		utils.Logger.Info("User gender updated successfully")
-	}
-
-	if updateRequest.Password != "" {
-
-		if updateRequest.Password != updateRequest.Confirm_Password {
-			utils.Logger.Warn("Passwords do not match")
-			c.JSON(http.StatusBadRequest, gin.H{"message": "passwords do not match", "error": true, "data": nil})
-			return
-		}
-
-		hashedPassword, err := utils.HashPassword(updateRequest.Password)
-		if err != nil {
-			utils.Logger.Error("Failed to hash password", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true, "data": nil})
-			return
-		}
-
-		if err := config.DB.Model(&config.Login{}).Where("user_id = ?", user.ID).Update("password", hashedPassword).Error; err != nil {
-			utils.Logger.Error("Failed to update password", zap.Int64("user_id", user.ID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update password", "error": true, "data": nil})
-			return
-		}
-
-		utils.Logger.Info("User password updated successfully", zap.Int64("user_id", user.ID))
-	}
-
-	err = updateRequest.UpdateUserTable()
+	err = utils.ValidateUser(req.Name, req.Mobile_No)
 	if err != nil {
-		utils.Logger.Error("Failed to update user", zap.Int64("user_id", user.ID), zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "could not update user", "error": true, "data": nil})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Data is in invalid format", "error": true, "data": nil})
 		return
 	}
 
-	utils.Logger.Info("User updated successfully", zap.Int64("user_id", user.ID))
-	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "error": false, "data": nil})
+	err = models.UpdateUserDetails(userId.(int64), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user", "error": true, "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User details updated successfully", "error": false, "data": nil})
 }
 
 // signOut function
