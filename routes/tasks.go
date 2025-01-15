@@ -41,16 +41,6 @@ func createTask(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "task created", "data": gin.H{"taskId": task.ID}, "error": false})
 }
 
-// func getTasks(context *gin.Context) {
-// 	tasks, err := models.GetAllTasks()
-// 	if err != nil {
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true})
-// 		return
-// 	}
-
-// 	context.JSON(http.StatusOK, gin.H{"tasks": tasks, "error": false})
-// }
-
 func getTask(context *gin.Context) {
 
 	err := middlewares.CheckTokenPresent(context)
@@ -190,7 +180,7 @@ func getTasksByQuery(context *gin.Context) {
 
 	// Retrieve query parameters
 	sortOrder := context.DefaultQuery("sort", "asc") // Default sort order: ascending
-	isCompleted := context.Query("isCompleted")      // Optional filter
+	completed := context.Query("completed")          // Optional filter
 
 	// Pagination parameters
 	page, err := strconv.Atoi(context.DefaultQuery("page", "1")) // Default page: 1
@@ -208,7 +198,7 @@ func getTasksByQuery(context *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Fetch tasks with filters, sorting, and pagination
-	tasks, totalTasks, err := models.GetTasksWithFilters(userId.(int64), sortOrder, isCompleted, limit, offset)
+	tasks, totalTasks, err := models.GetTasksWithFilters(userId.(int64), sortOrder, completed, limit, offset)
 	if err != nil {
 		utils.Logger.Error("Failed to get tasks", zap.Int64("userId", userId.(int64)), zap.Error(err))
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not get tasks", "error": true, "data": nil})
@@ -219,13 +209,13 @@ func getTasksByQuery(context *gin.Context) {
 	totalPages := (totalTasks + int64(limit) - 1) / int64(limit)
 
 	// Respond with tasks and pagination metadata
-	utils.Logger.Info("Tasks fetched successfully", zap.Int64("userId", userId.(int64)), zap.String("sortOrder", sortOrder), zap.String("isCompleted", isCompleted), zap.Int("page", page), zap.Int("limit", limit), zap.Int("totalPages", int(totalPages)))
+	utils.Logger.Info("Tasks fetched successfully", zap.Int64("userId", userId.(int64)), zap.String("sortOrder", sortOrder), zap.String("completed", completed), zap.Int("page", page), zap.Int("limit", limit), zap.Int("totalPages", int(totalPages)))
 	context.JSON(http.StatusOK, gin.H{
 		"message": "Tasks fetched successfully",
 		"data": gin.H{
-		"tasks":       tasks,
-		"totalPages":  totalPages,
-		"currentPage": page},
-		"error":       false,
+			"tasks":       tasks,
+			"totalPages":  totalPages,
+			"currentPage": page},
+		"error": false,
 	})
 }
