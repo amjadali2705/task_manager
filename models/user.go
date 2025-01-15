@@ -199,3 +199,13 @@ func GetUserById(uid int64) (*UserResponse, error) {
 	utils.Logger.Info("Fetched user by id successfully", zap.Int64("userId", uid))
 	return &user, nil
 }
+
+func DeleteAllUsers(uid int64) error {
+	var token config.Token
+
+	result := config.DB.Where("user_id = ?", uid).Delete(&token)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
