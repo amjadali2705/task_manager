@@ -6,10 +6,15 @@ import (
 	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		utils.Logger.Fatal("Error loading .env file")
+	}
 
 	utils.InitLogger()
 	defer utils.InitLogger()
