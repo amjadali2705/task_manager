@@ -137,6 +137,11 @@ func refreshTokenHandler(c *gin.Context) {
 	// Verify the refresh token
 	userId, err := utils.VerifyRefreshToken(refreshToken)
 	if err != nil {
+		err = models.DeleteRefreshToken(refreshToken)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Failed to delete refresh token", "error": true, "data": nil})
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid refresh token", "error": true, "data": nil})
 		return
 	}
@@ -162,7 +167,7 @@ func refreshTokenHandler(c *gin.Context) {
 
 	err = models.DeleteRefreshToken(refreshToken)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Failed to signout", "error": true, "data": nil})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Failed to delete refresh token", "error": true, "data": nil})
 		return
 	}
 
