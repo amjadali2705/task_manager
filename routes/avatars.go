@@ -105,3 +105,34 @@ func readAvatar(c *gin.Context) {
 	c.Data(http.StatusOK, "image/jpg", avatar.Data)
 	// utils.StandardResponse(c, http.StatusOK, "Avatar fetched successfully", true, avatar.Data)
 }
+
+func deleteAvatar(c *gin.Context) {
+	err := middlewares.CheckTokenPresent(c)
+	if err != nil {
+		return
+	}
+
+	userId, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
+		// utils.StandardResponse(c, http.StatusUnauthorized, "Unauthorized, User not authenticated", true, nil)
+		return
+	}
+
+	_, err = models.ReadAvatar(userId.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "No avatar present to delete", "data": nil, "error": true})
+		// utils.StandardResponse(c, http.StatusInternalServerError, "No avatar present to delete", true, nil)
+		return
+	}
+
+	err = models.DeleteAvatar(userId.(int64))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete avatar", "error": true, "data": nil})
+		// utils.StandardResponse(c, http.StatusInternalServerError, "Failed to delete avatar", true, nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Avatar deleted", "error": false, "data": nil})
+	// utils.StandardResponse(c, http.StatusOK, "Avatar deleted successfully", false, nil)
+}
