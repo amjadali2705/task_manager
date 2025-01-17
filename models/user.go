@@ -24,6 +24,7 @@ type UserResponse struct {
 	Mobile_No int64
 	Gender    string
 	Email     string
+	Avatar    string
 }
 
 type Login struct {

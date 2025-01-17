@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"task_manager/middlewares"
 	"task_manager/models"
@@ -115,27 +116,32 @@ func updateUser(c *gin.Context) {
 
 	userId, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		return
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Logger.Error("error in binding json", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true, "data": nil})
 		return
 	}
 
 	err = utils.ValidateUser(req.Name, req.Mobile_No)
 	if err != nil {
+		utils.Logger.Error("failed to validate user", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Data is in invalid format", "error": true, "data": nil})
 		return
 	}
 
 	err = models.UpdateUserDetails(userId.(int64), req)
 	if err != nil {
+		utils.Logger.Error("failed to update user details", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user", "error": true, "data": nil})
 		return
 	}
 
+	utils.Logger.Info("user details updated successfully")
 	c.JSON(http.StatusOK, gin.H{"message": "User details updated successfully", "error": false, "data": nil})
 }
 
@@ -152,52 +158,61 @@ func updatePassword(c *gin.Context) {
 
 	// Bind JSON request to struct
 	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Logger.Error("error in binding json", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body", "error": true, "data": nil})
 		return
 	}
 
 	userIdFromToken, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		return
 	}
 
 	err = utils.ValidatePassword(req.NewPassword)
 	if err != nil {
+		utils.Logger.Error("failed to validate password", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"message": "Unable to validate password", "error": true, "data": nil})
 		return
 	}
 
 	user, err := models.GetUserByIdPassChng(userIdFromToken.(int64))
 	if err != nil {
+		utils.Logger.Error("user not found", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"message": "User not found", "error": true, "data": nil})
 		return
 	}
 
 	passwordIsValid := utils.CheckPasswordHash(req.OldPassword, user.Password)
 	if !passwordIsValid {
+		utils.Logger.Error("incorrect old password", zap.Error(err))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Incorrect old password", "error": true, "data": nil})
 		return
 	}
 
 	hashedPassword, err := utils.HashPassword(req.NewPassword)
 	if err != nil {
+		utils.Logger.Error("failed to hashed password", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to hashed password", "error": true, "data": nil})
 		return
 	}
 
 	err = models.UpdatePassById(userIdFromToken.(int64), hashedPassword)
 	if err != nil {
+		utils.Logger.Error("failed to update password", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update password", "error": true, "data": nil})
 		return
 	}
 
 	err = models.DeleteTokenById(userIdFromToken.(int64), token)
 	if err != nil {
+		utils.Logger.Error("failed to delete tokens", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete tokens", "error": true, "data": nil})
 		return
 	}
 
+	utils.Logger.Info("password updated successfully")
 	c.JSON(http.StatusOK, gin.H{"message": "Password Updated Successfully.Please login in again.", "error": false, "data": nil})
 }
 
@@ -209,6 +224,7 @@ func getUser(c *gin.Context) {
 
 	userId, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		return
 	}
@@ -219,6 +235,9 @@ func getUser(c *gin.Context) {
 		return
 	}
 
+	user.Avatar = "/avatar/" + strconv.FormatInt(userId.(int64), 10)
+
+	utils.Logger.Info("user data fetched successfully")
 	c.JSON(http.StatusOK, gin.H{"data": user, "message": "user data fetched successfully", "error": false})
 }
 
@@ -255,14 +274,17 @@ func signOutAll(c *gin.Context) {
 
 	userId, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		return
 	}
 
 	err = models.DeleteAllUsers(userId.(int64))
 	if err != nil {
+		utils.Logger.Error("failed to signout from all devices", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to signout from all devices", "error": true, "data": nil})
 	}
 
+	utils.Logger.Info("Signout from all devices successfully")
 	c.JSON(http.StatusOK, gin.H{"message": "Signout from all devices is successfully", "data": nil, "error": false})
 }
