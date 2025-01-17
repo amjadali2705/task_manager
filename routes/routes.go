@@ -23,5 +23,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.DELETE("signOut", signOut)
 	authenticated.DELETE("signOut/all", signOutAll)
 
+	authenticated.POST("avatar", uploadAvatar)
+
 	server.POST("/refresh-token", refreshTokenHandler)
 }

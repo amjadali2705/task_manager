@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,39 +11,41 @@ import (
 	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func uploadAvatar(c *gin.Context) {
+	// Check if the token is present and valid
 	err := middlewares.CheckTokenPresent(c)
 	if err != nil {
 		return
 	}
 
+	// Retrieve the userId from the context
 	userId, exists := c.Get("userId")
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "User not authenticated", "data": nil, "error": true})
-		// utils.StandardResponse(c, http.StatusUnauthorized, "User not authenticated", true, nil)
 		return
 	}
 
-	_, err = models.ReadAvatar(userId.(int64))
-	if err == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Avatar already created, please update avatar", "data": nil, "error": true})
-		// utils.StandardResponse(c, http.StatusBadRequest, "Avatar already created, please update avatar", true, nil)
+	// Check if an avatar already exists for the user
+	existingAvatar, err := models.ReadAvatar(userId.(int64))
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check avatar existence", "data": nil, "error": true})
 		return
 	}
 
+	// Handle the uploaded file
 	fileHeader, err := c.FormFile("avatar")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid file", "data": nil, "error": true})
-		// utils.StandardResponse(c, http.StatusBadRequest, "Invalid file", true, nil)
 		return
 	}
 
+	// Validate the file (e.g., check size, type)
 	fileExtension, err := utils.ValidateAvatar(fileHeader)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": true, "data": nil})
-		// utils.StandardResponse(c, http.StatusBadRequest, err.Error(), true, nil)
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "data": nil, "error": true})
 		return
 	}
 
@@ -51,27 +54,33 @@ func uploadAvatar(c *gin.Context) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to open uploaded file", "data": nil, "error": true})
-		// utils.StandardResponse(c, http.StatusInternalServerError, "Failed to open uploaded file", true, nil)
 		return
 	}
-
-	content, err := io.ReadAll(file)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read uploded file", "error": true, "data": nil})
-		// utils.StandardResponse(c, http.StatusInternalServerError, "Failed to read uploaded file", true, nil)
-		return
-	}
-
-	err = models.SaveAvatar(userId.(int64), content, fileName)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save avatar", "error": true, "data": nil})
-		// utils.StandardResponse(c, http.StatusInternalServerError, "Failed to save avatar", true, nil)
-		return
-	}
-
 	defer file.Close()
 
-	c.JSON(http.StatusOK, gin.H{"message": "Avatar uploded", "error": false, "data": nil})
-	// utils.StandardResponse(c, http.StatusOK, "Avatar uploded successfully", false, nil)
+	// Read the file content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read uploaded file", "data": nil, "error": true})
+		return
+	}
 
+	// Save or update the avatar in the database
+	if existingAvatar != nil {
+		// Update the existing avatar
+		err = models.UpdateAvatar(userId.(int64), content, fileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update avatar", "data": nil, "error": true})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Avatar updated successfully", "data": nil, "error": false})
+	} else {
+		// Create a new avatar
+		err = models.SaveAvatar(userId.(int64), content, fileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save avatar", "data": nil, "error": true})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Avatar uploaded successfully", "data": nil, "error": false})
+	}
 }

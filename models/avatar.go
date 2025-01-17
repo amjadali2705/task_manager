@@ -24,3 +24,12 @@ func SaveAvatar(uid int64, content []byte, fileName string) error {
 
 	return nil
 }
+
+func UpdateAvatar(uid int64, content []byte, fileName string) error {
+	return config.DB.Model(&config.Avatar{}).
+		Where("user_id = ?", uid).
+		Updates(map[string]interface{}{
+			"data": content,
+			"name": fileName,
+		}).Error
+}
