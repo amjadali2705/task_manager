@@ -25,6 +25,7 @@ func uploadAvatar(c *gin.Context) {
 	// Retrieve the userId from the context
 	userId, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusBadRequest, gin.H{"message": "User not authenticated", "data": nil, "error": true})
 		return
 	}
@@ -32,6 +33,7 @@ func uploadAvatar(c *gin.Context) {
 	// Check if an avatar already exists for the user
 	existingAvatar, err := models.ReadAvatar(userId.(int64))
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		utils.Logger.Error("failed to check user avatar existence")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check avatar existence", "data": nil, "error": true})
 		return
 	}
@@ -39,6 +41,7 @@ func uploadAvatar(c *gin.Context) {
 	// Handle the uploaded file
 	fileHeader, err := c.FormFile("avatar")
 	if err != nil {
+		utils.Logger.Error("invalid file")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid file", "data": nil, "error": true})
 		return
 	}
@@ -46,6 +49,7 @@ func uploadAvatar(c *gin.Context) {
 	// Validate the file (e.g., check size, type)
 	fileExtension, err := utils.ValidateAvatar(fileHeader)
 	if err != nil {
+		utils.Logger.Error("failed to validate avatar")
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "data": nil, "error": true})
 		return
 	}
@@ -54,6 +58,7 @@ func uploadAvatar(c *gin.Context) {
 
 	file, err := fileHeader.Open()
 	if err != nil {
+		utils.Logger.Error("failed to open uploaded avatar")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to open uploaded file", "data": nil, "error": true})
 		return
 	}
@@ -62,6 +67,7 @@ func uploadAvatar(c *gin.Context) {
 	// Read the file content
 	content, err := io.ReadAll(file)
 	if err != nil {
+		utils.Logger.Error("failed to read avatar")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to read uploaded file", "data": nil, "error": true})
 		return
 	}
@@ -71,17 +77,21 @@ func uploadAvatar(c *gin.Context) {
 		// Update the existing avatar
 		err = models.UpdateAvatar(userId.(int64), content, fileName)
 		if err != nil {
+			utils.Logger.Error("failed to update avatar")
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update avatar", "data": nil, "error": true})
 			return
 		}
+		utils.Logger.Info("avatar updated successfully")
 		c.JSON(http.StatusOK, gin.H{"message": "Avatar updated successfully", "data": nil, "error": false})
 	} else {
 		// Create a new avatar
 		err = models.SaveAvatar(userId.(int64), content, fileName)
 		if err != nil {
+			utils.Logger.Error("failed to save avatar")
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save avatar", "data": nil, "error": true})
 			return
 		}
+		utils.Logger.Info("avatar uploaded successfully")
 		c.JSON(http.StatusOK, gin.H{"message": "Avatar uploaded successfully", "data": nil, "error": false})
 	}
 }
@@ -97,11 +107,13 @@ func readAvatar(c *gin.Context) {
 
 	avatar, err := models.ReadAvatar(userId)
 	if err != nil {
+		utils.Logger.Error("failed to read avatar")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch avatar", "error": true})
 		// utils.StandardResponse(c, http.StatusInternalServerError, "Could not fetch avatar", true, nil)
 		return
 	}
 
+	utils.Logger.Info("avatar fetched successfully")
 	c.Data(http.StatusOK, "image/jpg", avatar.Data)
 	// utils.StandardResponse(c, http.StatusOK, "Avatar fetched successfully", true, avatar.Data)
 }
@@ -114,6 +126,7 @@ func deleteAvatar(c *gin.Context) {
 
 	userId, exists := c.Get("userId")
 	if !exists {
+		utils.Logger.Error("User ID not found in context", zap.String("context", "userId"))
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized: User not authenticated", "error": true, "data": nil})
 		// utils.StandardResponse(c, http.StatusUnauthorized, "Unauthorized, User not authenticated", true, nil)
 		return
@@ -121,6 +134,7 @@ func deleteAvatar(c *gin.Context) {
 
 	_, err = models.ReadAvatar(userId.(int64))
 	if err != nil {
+		utils.Logger.Error("failed to read avatar")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "No avatar present to delete", "data": nil, "error": true})
 		// utils.StandardResponse(c, http.StatusInternalServerError, "No avatar present to delete", true, nil)
 		return
@@ -128,11 +142,13 @@ func deleteAvatar(c *gin.Context) {
 
 	err = models.DeleteAvatar(userId.(int64))
 	if err != nil {
+		utils.Logger.Error("failed to delete avatar")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete avatar", "error": true, "data": nil})
 		// utils.StandardResponse(c, http.StatusInternalServerError, "Failed to delete avatar", true, nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Avatar deleted", "error": false, "data": nil})
+	utils.Logger.Info("avatar deleted successfully")
+	c.JSON(http.StatusOK, gin.H{"message": "Avatar deleted successfully", "error": false, "data": nil})
 	// utils.StandardResponse(c, http.StatusOK, "Avatar deleted successfully", false, nil)
 }
