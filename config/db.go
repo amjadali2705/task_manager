@@ -23,7 +23,7 @@ func InitDB() {
 }
 
 func createTables() {
-	err := DB.AutoMigrate(&User{}, &Login{}, &Token{}, &Task{})
+	err := DB.AutoMigrate(&User{}, &Login{}, &Token{}, &Task{}, &Avatar{})
 	if err != nil {
 		utils.Logger.Fatal("Could not migrate tables", zap.Error(err))
 	}
@@ -65,4 +65,12 @@ type Task struct {
 	UpdatedAt   time.Time
 	UserID      int64
 	User        User `gorm:"foreignKey:UserID"`
+}
+
+type Avatar struct {
+	ID     int64  `gorm:"primaryKey;autoIncrement"`
+	Data   []byte `gorm:"type:blob;not null"`
+	Name   string `gorm:"not null"`
+	UserID int64
+	User   User `gorm:"foreignKey:UserID"`
 }
