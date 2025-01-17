@@ -11,6 +11,7 @@ import (
 	"task_manager/utils"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -83,4 +84,24 @@ func uploadAvatar(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Avatar uploaded successfully", "data": nil, "error": false})
 	}
+}
+
+func readAvatar(c *gin.Context) {
+	userId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.Logger.Error("Failed to parse avatar Id", zap.String("param", c.Param("id")), zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse avatar id", "error": true, "data": nil})
+		// utils.StandardResponse(c, http.StatusBadRequest, "Could not parse avatar id", true, nil)
+		return
+	}
+
+	avatar, err := models.ReadAvatar(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch avatar", "error": true})
+		// utils.StandardResponse(c, http.StatusInternalServerError, "Could not fetch avatar", true, nil)
+		return
+	}
+
+	c.Data(http.StatusOK, "image/jpg", avatar.Data)
+	// utils.StandardResponse(c, http.StatusOK, "Avatar fetched successfully", true, avatar.Data)
 }
